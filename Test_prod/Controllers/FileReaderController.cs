@@ -15,13 +15,22 @@ namespace Test_prod.Controllers
             _fileReader = fileReader;
         }
 
-        [HttpGet(Name = "Write")]
-        public async Task<IResult> Post(string fileName)
+        [HttpPost("WriteData")]
+        public async Task<IResult> PostData(string fileName)
         {
-            IResult res = await _fileReader.WriteData(fileName);
-            Console.WriteLine(res.ToString());
+            return await _fileReader.WriteData(fileName);
+        }
 
-            return res;
+        [HttpPost("Filter")]
+        public async Task<List<StatisticsDataCell>> PostFilter(Filter filter)
+        {
+            return await _fileReader.GetStatistics(filter);
+        }
+
+        [HttpGet("LastTask")]
+        public async Task<List<DataCell>> GetLastTask(string name)
+        {
+            return await _fileReader.GetLastTask(name);
         }
     }
 }

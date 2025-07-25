@@ -47,20 +47,21 @@ namespace Test_prod.Services
 
                 while ((line = sr.ReadLine()) != null)
                 {
+                    Console.WriteLine("Bad");
                     count++;
 
-                    if (count > _maxCountLine || count < _minCountLine)
+                    if (count > _maxCountLine)
                         return Results.BadRequest("File is too large!");
 
                     string[] parts = line.Split(';');
 
                     if (parts.Length != 3)
-                        return Results.BadRequest("Incorrect data entry! (Date;ExecutionTime;Value)");
+                        return Results.BadRequest("Incorrect data entry! (Correct: Date;ExecutionTime;Value)");
 
                     if (DateTime.TryParseExact(parts[0], "yyyy-MM-ddTHH-mm-ss.fffffZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTime dateTime))
                     {
                         if (dateTime >= DateTime.UtcNow || dateTime < _minDateTime)
-                            return Results.BadRequest("Not correct date!");
+                            return Results.BadRequest($"Not correct date! ({dateTime})");
                     }
                     else
                     {
@@ -73,6 +74,9 @@ namespace Test_prod.Services
                     if (!Single.TryParse(parts[2], out float value) && value < 0)
                         return Results.BadRequest($"Error convert! (Value: {parts[2]})");
                 }
+
+                if (count < _minCountLine)
+                    return Results.BadRequest("No data in the file!");
             }
             catch (Exception)
             {
@@ -80,6 +84,16 @@ namespace Test_prod.Services
             }
 
             return Results.Ok();
+        }
+
+        public async Task<List<StatisticsDataCell>> GetStatistics(Filter filter)
+        {
+            return await _repository.GetStatistics(filter);
+        }
+
+        public async Task<List<DataCell>> GetLastTask(string name)
+        {
+            return await _repository.GetLastTask(name);
         }
     }
 }

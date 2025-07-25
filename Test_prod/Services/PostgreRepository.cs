@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 using Test_prod.Data;
 using Test_prod.Models;
 
@@ -8,7 +10,7 @@ namespace Test_prod.Services
     {
         private readonly PostgreDbContext _context;
 
-        private DateTime _minDateTime = new(0001, 1, 1);
+        private readonly DateTime _minDateTime = new(0001, 1, 1);
 
         public PostgreRepository(PostgreDbContext context)
         {
@@ -98,6 +100,53 @@ namespace Test_prod.Services
             await _context.SaveChangesAsync();
 
             return Results.Ok();
+        }
+
+        public async Task<List<StatisticsDataCell>> GetStatistics(Filter filter)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("SELECT * FROM \"Results\" WHERE 1=1");
+            var parameters = new List<object>();
+
+            int count = 0;
+
+            if(filter.NameFilter != null)
+            {
+                sb.Append($" AND \"FileName\" ILIKE @p{count++}");
+                parameters.Add($"%{filter.NameFilter.Name}%");
+            }
+
+            if(filter.RangeDate != null)
+            {
+                sb.Append($" AND \"MinDateTime\" BETWEEN @p{count++} AND @p{count++}");
+                parameters.Add(filter.RangeDate.Min);
+                parameters.Add(filter.RangeDate.Max);
+            }
+
+            if(filter.RangeValue != null)
+            {
+                sb.Append($" AND \"AverageValue\" BETWEEN @p{count++} AND @p{count++}");
+                parameters.Add(filter.RangeValue.Min);
+                parameters.Add(filter.RangeValue.Max);
+            }
+
+            if(filter.RangeTime != null)
+            {
+                sb.Append($" AND \"AverageExecutionTime\" BETWEEN @p{count++} AND @p{count++}");
+                parameters.Add(filter.RangeTime.Min);
+                parameters.Add(filter.RangeTime.Max);
+            }
+
+            return await _context.Results
+                .FromSqlRaw(sb.ToString(), parameters.ToArray())
+                .ToListAsync();
+        }
+
+        public async Task<List<DataCell>> GetLastTask(string name)
+        {
+            return await _context.Values
+                .FromSqlInterpolated($"SELECT * FROM \"Values\" WHERE \"FileName\" = '{name}' ORDER BY \"Time\" ASC LIMIT 10")
+                .ToListAsync();
         }
     }
 }
