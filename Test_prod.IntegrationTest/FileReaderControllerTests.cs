@@ -25,7 +25,17 @@ namespace Test_prod.IntegrationTest
 
             TestContext.WriteLine(Directory.GetCurrentDirectory());
 
-            string fileName = "test/Test1";
+            string fileName = "Test2";
+
+            try
+            {
+                File.Create(fileName + ".txt");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при создании файла: {ex.Message}");
+            }
+
             string encodedFileName = Uri.EscapeDataString(fileName);
             string url = $"FileReader/WriteData?fileName={encodedFileName}";
 
