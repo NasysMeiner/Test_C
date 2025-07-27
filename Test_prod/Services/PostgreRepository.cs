@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
 using Test_prod.Data;
@@ -96,8 +98,7 @@ namespace Test_prod.Services
 
             statisticsData.MedianValue = medianValue;
 
-            await _context.Results.AddAsync(statisticsData);
-            await _context.SaveChangesAsync();
+            await WriteStatisticsFile(statisticsData);
 
             return Results.Ok();
         }
@@ -145,8 +146,27 @@ namespace Test_prod.Services
         public async Task<List<DataCell>> GetLastTask(string name)
         {
             return await _context.Values
-                .FromSqlInterpolated($"SELECT * FROM \"Values\" WHERE \"FileName\" = '{name}' ORDER BY \"Time\" ASC LIMIT 10")
+                .FromSqlInterpolated($"SELECT * FROM (SELECT * FROM public.\"Values\" WHERE \"FileName\" = {name} ORDER BY \"Id\" DESC LIMIT 10) ORDER BY \"Time\" ASC")
                 .ToListAsync();
+        }
+
+        private async Task<int> WriteStatisticsFile(StatisticsDataCell statisticsData)
+        {
+            List<StatisticsDataCell> data = await _context.Results
+                    .FromSqlInterpolated($"SELECT * FROM public.\"Results\" WHERE \"FileName\" = {statisticsData.FileName}")
+                    .ToListAsync();
+
+            if (data.Count == 0)
+            {
+                await _context.Results.AddAsync(statisticsData);
+            }
+            else
+            {
+                return await _context.Database
+                    .ExecuteSqlInterpolatedAsync($"UPDATE public.\"Results\" SET \"DeltaDate\" = {statisticsData.DeltaDate}, \"MinDateTime\" = {statisticsData.MinDateTime}, \"AverageExecutionTime\" = {statisticsData.AverageExecutionTime}, \"AverageValue\" = {statisticsData.AverageValue}, \"MedianValue\" = {statisticsData.MedianValue}, \"MaxValue\" = {statisticsData.MaxValue}, \"MinValue\" = {statisticsData.MinValue} WHERE \"FileName\" = {statisticsData.FileName}");
+            }
+
+            return await _context.SaveChangesAsync();
         }
     }
 }

@@ -19,13 +19,10 @@ namespace Test_prod.Services
 
         public async Task<IResult> WriteData(string fileName)
         {
-            if (fileName == "" || fileName == null)
-                return Results.BadRequest("Not correct file name");
-
             string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName + ".txt");
 
             if (!System.IO.File.Exists(filePath))
-                return Results.BadRequest("File not found");
+                return Results.NotFound("File not found");
 
             IResult err = CheckValid(filePath);
 
@@ -47,7 +44,6 @@ namespace Test_prod.Services
 
                 while ((line = sr.ReadLine()) != null)
                 {
-                    Console.WriteLine("Bad");
                     count++;
 
                     if (count > _maxCountLine)
